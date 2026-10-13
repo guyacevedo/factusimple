@@ -1,0 +1,108 @@
+# ── Secretos y entorno ────────────────────────────────────────────────────────
+.env*
+!.env.example
+!.env.edge.example
+
+# Los volcados de la base viven en el servidor y no en git: pesan, y lo que
+# hay dentro son las ventas del negocio.
+respaldos/*
+!respaldos/.gitkeep
+
+# Certificados TLS y retos ACME: los genera certbot en el servidor, nunca se
+# versionan.
+proxy/certs/*
+!proxy/certs/.gitkeep
+proxy/acme/*
+!proxy/acme/.gitkeep
+*.local.properties
+application-local.properties
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm/
+.yarn-integrity
+
+# ── Backend (Java / Maven / Gradle) ──────────────────────────────────────────
+target/
+out/
+build/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+.mvn/
+.mvn/wrapper/maven-wrapper.jar
+mvn-wrapper.properties
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# ── Frontend (Node / Angular) ────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/tmp/
+node_modules/
+dist/
+.angular/
+tmp/
+*.lcov
+.nyc_output
+*.ngfactory.ts
+*.ngsummary.json
+
+# ── Tooling de agentes ───────────────────────────────────────────────────────
+.agents/
+.claude/
+skills-lock.json
+
+# ── Editores y entorno de desarrollo ─────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# ── Sistema operativo ────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
