@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+
+  backend:
+    name: Backend — pruebas
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: factusimple_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          TZ: America/Bogota
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Verificar
+        working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: dev
+          PORT: 8090
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_DATABASE_NAME: factusimple_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+        run: mvn -B clean verify
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-surefire
+          path: backend/target/surefire-reports/
+
+  frontend:
+    name: Frontend — pruebas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.34.6'
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Instalar
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Probar
+        working-directory: frontend
+        run: pnpm test
+
+      - name: Compilar
+        working-directory: frontend
+        run: pnpm run build
