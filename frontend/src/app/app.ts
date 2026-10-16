@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Kit } from './features/kit/kit';
 
@@ -12,6 +12,4 @@ import { Kit } from './features/kit/kit';
     <router-outlet />
   `,
 })
-export class App {
-  protected readonly title = signal('factusimple');
-}
+export class App { }
