@@ -80,6 +80,14 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      - name: Generar environments
+        working-directory: frontend/src/environments
+        env:
+          API_URL: ${{ vars.API_URL || 'http://localhost:8090/api' }}
+        run: |
+          sed "s|YOUR_API_URL_HERE|$API_URL|" environment.template.ts > environment.ts
+          sed -e "s|YOUR_API_URL_HERE|$API_URL|" -e "s|production: false|production: true|" environment.template.ts > environment.prod.ts
+
       - name: Probar
         working-directory: frontend
         run: pnpm test
