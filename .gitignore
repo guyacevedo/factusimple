@@ -57,11 +57,8 @@ tmp/
 .nyc_output
 *.ngfactory.ts
 *.ngsummary.json
-
-# ── Tooling de agentes ───────────────────────────────────────────────────────
-.agents/
-.claude/
-skills-lock.json
+environment.prod.ts
+environment.ts
 
 # ── Editores y entorno de desarrollo ─────────────────────────────────────────
 .idea/
