@@ -81,6 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generar environments
+        if: hashFiles('frontend/src/environments/environment.template.ts') != ''
         working-directory: frontend/src/environments
         env:
           API_URL: ${{ vars.API_URL || 'http://localhost:8090/api' }}
