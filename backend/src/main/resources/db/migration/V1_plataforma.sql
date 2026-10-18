@@ -1,7 +1,7 @@
 -- #############################################################################
 -- V1. PLATFORM
 -- #############################################################################
- 
+
 -- ============================================================================
 -- PLANS TABLE
 -- ============================================================================
@@ -9,20 +9,22 @@ CREATE TABLE plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(100) NOT NULL,
-    max_products INTEGER NOT NULL CHECK (max_products >= 1),
-    max_customers INTEGER NOT NULL CHECK (max_customers >= 1),
-    max_invoices INTEGER NOT NULL CHECK (max_invoices >= 1),
+    max_products INTEGER NOT NULL,
+    max_customers INTEGER NOT NULL,
+    max_invoices INTEGER NOT NULL,
     required_invited_code BOOLEAN NOT NULL DEFAULT FALSE,
     code VARCHAR(255),
     description TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID,
-    CONSTRAINT uk_plan_name UNIQUE (name)
+    CONSTRAINT uk_plan_name UNIQUE (name),
+    CONSTRAINT ck_plan_limits CHECK (
+        max_products >= 1 AND max_customers >= 1 AND max_invoices >= 1)
 );
- 
+
 -- ============================================================================
 -- USERS TABLE
 -- ============================================================================
@@ -40,6 +42,7 @@ CREATE TABLE users (
     municipality_code VARCHAR(10),
     nit VARCHAR(20) NOT NULL,
     dv VARCHAR(2),
+    company_name VARCHAR(200) NOT NULL,
     legal_org_code VARCHAR(10),
     tribute_code VARCHAR(4),
     fiscal_responsibility VARCHAR(50),
@@ -50,15 +53,15 @@ CREATE TABLE users (
     blocked_at TIMESTAMP,
     failed_login_attempts INTEGER NOT NULL DEFAULT 0,
     must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID,
     CONSTRAINT ck_user_role CHECK (role IN ('ADMIN', 'ESTABLISHMENT'))
 );
 CREATE UNIQUE INDEX uk_user_email ON users(LOWER(email));
 CREATE INDEX idx_user_plan_id ON users(plan_id);
- 
+
 -- ============================================================================
 -- TOKENS TABLE
 -- ============================================================================
@@ -80,7 +83,7 @@ CREATE TABLE tokens (
 );
 CREATE INDEX idx_token_user_active ON tokens(user_id) WHERE revoked = FALSE;
 CREATE INDEX idx_token_expires_at ON tokens(expires_at);
- 
+
 -- ============================================================================
 -- RESET PASSWORDS TABLE
 -- ============================================================================
@@ -97,7 +100,7 @@ CREATE TABLE reset_passwords (
     updated_by UUID
 );
 CREATE INDEX idx_reset_password_user_unused ON reset_passwords(user_id) WHERE used = FALSE;
- 
+
 -- ============================================================================
 -- LOGIN ATTEMPTS TABLE
 -- ============================================================================
@@ -113,7 +116,7 @@ CREATE TABLE login_attempts (
     updated_by UUID
 );
 CREATE INDEX idx_login_attempt_username_date ON login_attempts(username, created_at DESC);
- 
+
 -- ============================================================================
 -- PARAMETERS TABLE
 -- ============================================================================

@@ -5,6 +5,8 @@
 -- ============================================================================
 -- HELD_SALES TABLE
 -- ============================================================================
+-- Cart put on hold to serve another customer. It does not touch inventory:
+-- stock is only deducted at checkout, because a held sale may never close.
 CREATE TABLE held_sales (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version BIGINT NOT NULL DEFAULT 0,

@@ -1,5 +1,7 @@
 -- #############################################################################
 -- V3. INVENTORY
+-- One stock row per product. Every change that is not a sale is recorded in
+-- stock_adjustments with its reason.
 -- #############################################################################
 
 -- ============================================================================
@@ -14,7 +16,10 @@ CREATE TABLE product_stocks (
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID,
-    CONSTRAINT uk_product_stock_product_location UNIQUE (product_id, location),
+    -- Also serves lookups by product_id, so no separate index is needed.
+    CONSTRAINT uk_product_stock_product UNIQUE (product_id),
+    -- Last line of defense. The application deducts with a conditional UPDATE
+    -- that already prevents going negative.
     CONSTRAINT ck_product_stock_non_negative CHECK (quantity >= 0)
 );
 
@@ -24,7 +29,7 @@ CREATE TABLE product_stocks (
 CREATE TABLE stock_adjustments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version BIGINT NOT NULL DEFAULT 0,
-    product_id UUID NOT NULL REFERENCES products(id),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
     previous_quantity NUMERIC(12, 3) NOT NULL,
     new_quantity NUMERIC(12, 3) NOT NULL,
     difference NUMERIC(12, 3) NOT NULL,

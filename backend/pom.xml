@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.guyacevedo</groupId>
-	<artifactId>fatusimple</artifactId>
+	<artifactId>factusimple</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>

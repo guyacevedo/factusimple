@@ -15,23 +15,30 @@ CREATE TABLE invoices (
     operation_type VARCHAR(20),
     send_email BOOLEAN NOT NULL DEFAULT FALSE,
     observation TEXT,
-    cash_rounding NUMERIC(12, 2),
+    cash_rounding NUMERIC(12, 2) NOT NULL DEFAULT 0,
     numbering_range_id INTEGER NOT NULL,
-    status VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     subtotal NUMERIC(16, 2) NOT NULL DEFAULT 0.00,
     total_taxes NUMERIC(16, 2) NOT NULL DEFAULT 0.00,
     total_holding_taxes NUMERIC(16, 2) NOT NULL DEFAULT 0.00,
     total_discounts NUMERIC(16, 2) NOT NULL DEFAULT 0.00,
     total NUMERIC(16, 2) NOT NULL DEFAULT 0.00,
+    cash_received NUMERIC(16, 2),
+    change_amount NUMERIC(16, 2),
+    cancelled_at TIMESTAMP,
+    cancellation_reason TEXT,
     cufe VARCHAR(200),
     xml_url TEXT,
     factus_number VARCHAR(50),
     factus_error TEXT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID,
-    CONSTRAINT uk_invoice_user_reference_code UNIQUE (user_id, reference_code)
+    CONSTRAINT uk_invoice_user_reference_code UNIQUE (user_id, reference_code),
+    CONSTRAINT ck_invoice_status CHECK (status IN ('PENDING', 'VALIDATED', 'ERROR', 'CANCELLED')),
+    CONSTRAINT ck_invoice_cash CHECK (
+        (cash_received IS NULL OR cash_received >= 0) AND (change_amount IS NULL OR change_amount >= 0))
 );
 CREATE INDEX idx_invoice_customer_id ON invoices(customer_id);
 CREATE INDEX idx_invoice_reference_code ON invoices(reference_code);
@@ -54,8 +61,8 @@ CREATE TABLE invoice_items (
     unit_price NUMERIC(12, 2) NOT NULL,
     discount_rate NUMERIC(5, 2),
     note TEXT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID
 );
@@ -74,8 +81,8 @@ CREATE TABLE invoice_payments (
     reference_code VARCHAR(50),
     amount NUMERIC(16, 2) NOT NULL,
     due_date DATE,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID
 );
@@ -93,8 +100,8 @@ CREATE TABLE allowance_charges (
     reason VARCHAR(255) NOT NULL,
     base_amount NUMERIC(16, 2) NOT NULL,
     amount NUMERIC(16, 2) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID
 );
@@ -119,11 +126,12 @@ CREATE TABLE credit_notes (
     cufe VARCHAR(200),
     xml_url TEXT,
     factus_error TEXT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
     created_by UUID,
     updated_by UUID,
-    CONSTRAINT uk_credit_note_user_reference_code UNIQUE (user_id, reference_code)
+    CONSTRAINT uk_credit_note_user_reference_code UNIQUE (user_id, reference_code),
+    CONSTRAINT ck_credit_note_status CHECK (status IN ('PENDING', 'VALIDATED', 'ERROR'))
 );
 CREATE INDEX idx_credit_note_invoice_id ON credit_notes(invoice_id);
 CREATE INDEX idx_credit_note_customer_id ON credit_notes(customer_id);
