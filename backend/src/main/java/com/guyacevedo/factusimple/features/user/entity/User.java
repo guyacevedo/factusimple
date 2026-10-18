@@ -7,11 +7,20 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
+import org.hibernate.annotations.DynamicUpdate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
-/** An establishment (tenant) or a platform admin. Email is unique ignoring case (see V1). */
+/**
+ * An establishment (tenant) or a platform admin. Email is unique ignoring case (see V1).
+ *
+ * @DynamicUpdate: the counters (products, customers, invoices, failed logins)
+ * change through bulk UPDATEs in UserRepository. Without it, saving a User
+ * loaded earlier would write every column back and undo those increments.
+ */
 @Entity
+@DynamicUpdate
 @Table(name = "users")
 @Getter
 @Setter
@@ -104,4 +113,16 @@ public class User extends BaseEntity {
     @Builder.Default
     @Column(name = "must_change_password", nullable = false)
     private Boolean mustChangePassword = false;
+
+    // ── Login lock ──────────────────────────────────────────────────────────
+    // After MAX_FAILED_LOGIN_ATTEMPTS wrong passwords, blocked_at is set and
+    // login is refused for LOCK_DURATION. The lock lifts by itself; a correct
+    // login or a password reset clears blocked_at and the counter.
+
+    public static final int MAX_FAILED_LOGIN_ATTEMPTS = 10;
+    public static final Duration LOCK_DURATION = Duration.ofMinutes(15);
+
+    public boolean isLocked() {
+        return blockedAt != null && blockedAt.plus(LOCK_DURATION).isAfter(LocalDateTime.now());
+    }
 }

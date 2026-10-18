@@ -116,7 +116,7 @@ CREATE TABLE login_attempts (
     updated_by UUID
 );
 CREATE INDEX idx_login_attempt_username_date ON login_attempts(username, created_at DESC);
-
+CREATE INDEX idx_login_attempt_ip_date ON login_attempts(ip, created_at DESC);
 -- ============================================================================
 -- PARAMETERS TABLE
 -- ============================================================================
