@@ -78,4 +78,9 @@ public class Customer extends BaseEntity {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
+
+    /** Legal entities have a company name and natural persons have names. */
+    public String displayName() {
+        return company != null && !company.isBlank() ? company : names;
+    }
 }

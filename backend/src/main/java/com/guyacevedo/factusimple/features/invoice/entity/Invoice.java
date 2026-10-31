@@ -88,9 +88,17 @@ public class Invoice extends BaseEntity {
     @Column(name = "cash_received", precision = 16, scale = 2)
     private BigDecimal cashReceived;
 
-    /** Change returned: cashReceived - total. */
+    /** Change returned: cashReceived - what was paid in cash. */
     @Column(name = "change_amount", precision = 16, scale = 2)
     private BigDecimal changeAmount;
+
+    /**
+     * What the customer still owes (credit sales only, 0 for cash sales).
+     * Credit payments lower it; cancelling releases whatever is left.
+     */
+    @Builder.Default
+    @Column(name = "balance_due", nullable = false, precision = 16, scale = 2)
+    private BigDecimal balanceDue = BigDecimal.ZERO;
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;

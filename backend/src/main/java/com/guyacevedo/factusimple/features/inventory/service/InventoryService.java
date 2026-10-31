@@ -113,10 +113,11 @@ public class InventoryService {
      * the quantity fits its sale type (SaleType.validQuantity).
      */
     @Transactional
-    public void deductStock(UUID productId, BigDecimal quantity) {
+    public void deductStock(UUID productId, String productName, BigDecimal quantity) {
         checkPositive(quantity);
         if (productStockRepository.deductIfAvailable(productId, quantity) == 0) {
-            throw new UnprocessableEntityException("No hay stock suficiente", "INSUFFICIENT_STOCK");
+            throw new UnprocessableEntityException(
+                    "No hay stock suficiente de '" + productName + "'", "INSUFFICIENT_STOCK");
         }
     }
 

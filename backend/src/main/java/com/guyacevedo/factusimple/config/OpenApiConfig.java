@@ -91,9 +91,12 @@ public class OpenApiConfig {
             - **users** — cuenta del usuario, datos fiscales del establecimiento y cambio de plan
             - **plans** — planes de suscripción con límites de uso
             - **customers** — clientes del establecimiento
-            - **products** — catálogo de productos con control de stock
-            - **invoices** — facturas electrónicas DIAN
-            - **credit-notes** — notas crédito asociadas a facturas validadas
+            - **products** — catálogo de productos (precios con IVA incluido)
+            - **inventory** — stock y ajustes de inventario
+            - **invoices** — facturas de venta, de contado o a crédito
+            - **credit-notes** — notas crédito emitidas al cancelar una factura
+            - **receivables** — cartera: abonos a las ventas a crédito
+            - **pos** — ventas en espera del punto de venta
             - **factus-codes** — códigos de referencia Factus (tipos de documento, impuestos, formas de pago)
             - **numbering-ranges** — rangos de numeración activos del establecimiento
  
@@ -114,21 +117,19 @@ public class OpenApiConfig {
  
             ## Flujo principal de facturación
             1. `POST /auth/register` — crear la cuenta con los datos del establecimiento (devuelve la sesión iniciada)
-            2. `GET /v1/numbering-ranges/sale` — obtener el rango de numeración activo
-            3. `POST /v1/customers` — crear el cliente receptor
-            4. `POST /v1/products` — crear los productos o servicios
-            5. `POST /v1/invoices` — crear la factura en estado **PENDING**
-            6. `POST /v1/invoices/{id}/sync` — enviar a Factus → **VALIDATED** con CUFE asignado
-            7. `GET /v1/invoices/{id}/pdf` — descargar el PDF de la factura validada
+            2. `POST /v1/customers` — crear el cliente receptor
+            3. `POST /v1/products` — crear los productos (con `initialStock`)
+            4. `POST /v1/invoices` — crear la factura: queda en **PENDING** ante la DIAN
+            5. *(próximamente)* `POST /v1/invoices/{id}/sync` — enviar a la DIAN vía Factus → **VALIDATED** con CUFE
  
             Las cuentas creadas con contraseña temporal deben pasar antes por `POST /auth/activate`.
  
             ## Estados de factura
 ````
-            PENDING   → VALIDATED  (sync exitoso con Factus)
-            PENDING   → ERROR      (fallo en el sync; reintentar con /sync)
-            PENDING   → CANCELLED  (cancelada antes de validar)
-            VALIDATED → solo se anula con una nota crédito
+            PENDING   → creada y validada localmente; pendiente de envío a la DIAN
+            PENDING   → CANCELLED  (POST /v1/invoices/{id}/cancel: emite una nota crédito PENDING)
+            PENDING   → VALIDATED  (próximamente: sync exitoso con la DIAN)
+            PENDING   → ERROR      (próximamente: fallo en el sync; se reintenta)
 ````
  
             ## Estructura de respuesta

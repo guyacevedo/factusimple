@@ -1,11 +1,12 @@
 package com.guyacevedo.factusimple.features.invoice.entity;
 
 /**
- * Estado interno de la factura.
- * - PENDING: creada localmente, aún no enviada a Factus.
- * - VALIDATED: aceptada por Factus (cufe + factusNumber asignados).
- * - ERROR: el envío a Factus falló y debe reintentarse.
- * - CANCELLED: anulada localmente / nota crédito emitida (cancelledAt asignado).
+ * Estado de la factura ante la DIAN.
+ * - PENDING: creada y validada localmente (totales, stock, cupo); pendiente de
+ *   envío a la DIAN. Es el estado de toda factura hasta que exista la integración.
+ * - VALIDATED: aceptada por la DIAN vía Factus (cufe + factusNumber asignados).
+ * - ERROR: el envío a la DIAN falló y debe reintentarse.
+ * - CANCELLED: cancelada; se emitió una nota crédito (cancelledAt asignado).
  */
 public enum InvoiceStatus {
     PENDING,
