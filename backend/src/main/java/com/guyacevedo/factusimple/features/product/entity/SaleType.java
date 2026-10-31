@@ -20,4 +20,10 @@ public enum SaleType {
         }
         return true;
     }
+
+    /** Stock quantities: zero or more, whole numbers when the product is sold by unit. */
+    public boolean acceptsQuantity(BigDecimal quantity) {
+        return quantity != null && quantity.signum() >= 0
+                && (allowsDecimals() || quantity.stripTrailingZeros().scale() <= 0);
+    }
 }
