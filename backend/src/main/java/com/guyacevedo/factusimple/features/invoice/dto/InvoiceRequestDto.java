@@ -1,5 +1,8 @@
 package com.guyacevedo.factusimple.features.invoice.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
+import com.guyacevedo.factusimple.features.catalog.Catalog;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -21,8 +24,9 @@ public record InvoiceRequestDto(
         @NotNull(message = "El cliente es requerido")
         UUID customerId,
 
-        @Schema(description = "Código de referencia propio, único por establecimiento (máximo 50: la nota crédito le antepone NC-). Si se omite se genera FV-{n}.",
-                example = "FV-120")
+        @Schema(description = "Código de referencia propio, único por establecimiento (máximo 50: la nota crédito le antepone NC-). "
+                + "Si se omite se genera FACT-{año}-{6 caracteres}.",
+                example = "FACT-2026-AR32WS")
         @Size(max = 50, message = "El código de referencia no puede superar 50 caracteres")
         String referenceCode,
 
@@ -32,8 +36,23 @@ public record InvoiceRequestDto(
         @Positive(message = "El rango de numeración debe ser mayor a 0")
         Integer numberingRangeId,
 
-        @Schema(description = "Observación de la factura.", example = "Entrega a domicilio")
+        @Schema(description = "Tipo de operación: 10 = estándar (por defecto). Mandatos (11) y transporte (12) aún no se soportan.",
+                example = "10", defaultValue = "10")
+        @ValidCatalogCode(Catalog.INVOICE_OPERATION_TYPE)
+        String operationType,
+
+        @Schema(description = "Observación de la factura (máximo 250 caracteres, límite de Factus).", example = "Entrega a domicilio")
+        @Size(max = 250, message = "La observación no puede superar 250 caracteres")
         String observation,
+
+        @Schema(description = "Redondeo de caja entre -500 y 500 (por defecto 0): ajusta la diferencia entre la suma "
+                + "de los pagos y el total por la denominación de la moneda. Los pagos deben sumar total + cashRounding. "
+                + "Solo en ventas de contado.",
+                example = "-50", defaultValue = "0")
+        @DecimalMin(value = "-500", message = "El redondeo no puede ser menor a -500")
+        @DecimalMax(value = "500", message = "El redondeo no puede ser mayor a 500")
+        @Digits(integer = 3, fraction = 2, message = "El redondeo admite 2 decimales")
+        BigDecimal cashRounding,
 
         @Schema(description = "Enviar la factura al correo del cliente cuando se sincronice. Por defecto false.",
                 example = "false", defaultValue = "false")
@@ -43,7 +62,7 @@ public record InvoiceRequestDto(
         @NotEmpty(message = "La factura debe tener al menos un producto")
         List<@NotNull(message = "Hay una línea vacía") @Valid InvoiceItemRequestDto> items,
 
-        @Schema(description = "Pagos. Mínimo uno; deben sumar el total y usar la misma forma de pago.",
+        @Schema(description = "Pagos. Mínimo uno; deben sumar el total más cashRounding y usar la misma forma de pago.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotEmpty(message = "La factura debe tener al menos un pago")
         List<@NotNull(message = "Hay un pago vacío") @Valid InvoicePaymentRequestDto> payments,

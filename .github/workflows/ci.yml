@@ -48,6 +48,10 @@ jobs:
           DB_DATABASE_NAME: factusimple_test
           DB_USER: postgres
           DB_PASSWORD: postgres
+          # V7 aborts without them. Throwaway admin of the CI database only
+          # (hash of the test password "CiAdmin#2026").
+          ADMIN_EMAIL: admin@ci.local
+          ADMIN_PASSWORD_HASH: '$2y$12$.oNLL5jLUmW/Am6yOzYgDeIt9grZRh41LjRGF8kVBWIDPvJBduDVC'
         run: mvn -B clean verify
 
       - name: Publicar resultados
@@ -84,7 +88,7 @@ jobs:
         if: hashFiles('frontend/src/environments/environment.template.ts') != ''
         working-directory: frontend/src/environments
         env:
-          API_URL: ${{ vars.API_URL || 'http://localhost:8090/api' }}
+          API_URL: ${{ vars.API_URL || 'http://localhost:8090' }}
         run: |
           sed "s|YOUR_API_URL_HERE|$API_URL|" environment.template.ts > environment.ts
           sed -e "s|YOUR_API_URL_HERE|$API_URL|" -e "s|production: false|production: true|" environment.template.ts > environment.prod.ts

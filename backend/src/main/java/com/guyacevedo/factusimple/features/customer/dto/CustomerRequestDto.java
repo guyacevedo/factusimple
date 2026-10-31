@@ -1,5 +1,8 @@
 package com.guyacevedo.factusimple.features.customer.dto;
 
+import com.guyacevedo.factusimple.features.catalog.validation.ValidMunicipality;
+import com.guyacevedo.factusimple.features.catalog.Catalog;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMin;
@@ -17,7 +20,7 @@ public record CustomerRequestDto(
         @Schema(description = "Tipo de identificación (catálogo DIAN): 13 = CC, 31 = NIT, etc.",
                 example = "13", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "El tipo de identificación es requerido")
-        @Size(max = 4, message = "El tipo de identificación no puede superar 4 caracteres")
+        @ValidCatalogCode(Catalog.IDENTIFICATION_TYPE)
         String idTypeCode,
 
         @Schema(description = "Número de identificación sin puntos ni dígito de verificación. Único por establecimiento.",
@@ -31,7 +34,7 @@ public record CustomerRequestDto(
         String dv,
 
         @Schema(description = "Tipo de organización: 1 = persona jurídica, 2 = persona natural.", example = "2")
-        @Size(max = 10, message = "El tipo de organización no puede superar 10 caracteres")
+        @ValidCatalogCode(Catalog.LEGAL_ORGANIZATION)
         String legalOrgCode,
 
         @Schema(description = "Razón social (persona jurídica).", example = "Distribuciones El Sol S.A.S.")
@@ -59,16 +62,16 @@ public record CustomerRequestDto(
         @Size(max = 20, message = "El teléfono no puede superar 20 caracteres")
         String phone,
 
-        @Schema(description = "Código del municipio (catálogo de Factus).", example = "980")
-        @Size(max = 10, message = "El código de municipio no puede superar 10 caracteres")
+        @Schema(description = "Código DANE del municipio. Consultar GET /v1/catalogs/municipalities.", example = "13430")
+        @ValidMunicipality
         String municipalityCode,
 
-        @Schema(description = "Código del tributo (catálogo DIAN).", example = "21")
-        @Size(max = 4, message = "El código de tributo no puede superar 4 caracteres")
+        @Schema(description = "Código del tributo (catálogo DIAN).", example = "ZZ")
+        @ValidCatalogCode(Catalog.TRIBUTE)
         String tributeCode,
 
         @Schema(description = "Responsabilidad fiscal (catálogo DIAN).", example = "R-99-PN")
-        @Size(max = 50, message = "La responsabilidad fiscal no puede superar 50 caracteres")
+        @ValidCatalogCode(Catalog.FISCAL_RESPONSIBILITY)
         String fiscalResponsibility,
 
         @Schema(description = "Cupo de crédito. Si se omite: 0 al crear, sin cambios al actualizar.",
@@ -89,5 +92,19 @@ public record CustomerRequestDto(
     @AssertTrue(message = "Indica la razón social o los nombres del cliente")
     public boolean isNameProvided() {
         return (company != null && !company.isBlank()) || (names != null && !names.isBlank());
+    }
+
+    /** Same rule as Factus: a legal entity (1) is invoiced by its company name. */
+    @Schema(hidden = true)
+    @AssertTrue(message = "La razón social es requerida para una persona jurídica")
+    public boolean isCompanyProvidedForLegalEntity() {
+        return !"1".equals(legalOrgCode) || (company != null && !company.isBlank());
+    }
+
+    /** Same rule as Factus: a natural person (2) is invoiced by their names. */
+    @Schema(hidden = true)
+    @AssertTrue(message = "Los nombres son requeridos para una persona natural")
+    public boolean isNamesProvidedForNaturalPerson() {
+        return !"2".equals(legalOrgCode) || (names != null && !names.isBlank());
     }
 }

@@ -45,6 +45,13 @@ public interface ProductStockRepository extends JpaRepository<ProductStock, UUID
             """)
     Page<ProductStock> findLowStockByUserId(@Param("userId") UUID userId, Pageable pageable);
 
+    /** How many products findLowStockByUserId would return, for the dashboard. */
+    @Query("""
+            SELECT COUNT(s) FROM ProductStock s JOIN s.product p
+            WHERE p.user.id = :userId AND p.active = true AND s.quantity <= p.minStock
+            """)
+    long countLowStockByUserId(@Param("userId") UUID userId);
+
     // ── Sales ───────────────────────────────────────────────────────────────
     // One statement each, like the plan counters in UserRepository: two cashiers
     // selling the last unit cannot both get it (no read-check-write window).

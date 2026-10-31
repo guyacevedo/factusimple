@@ -1,5 +1,7 @@
 package com.guyacevedo.factusimple.features.product.dto;
 
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
+import com.guyacevedo.factusimple.features.catalog.Catalog;
 import com.guyacevedo.factusimple.features.product.entity.SaleType;
 import com.guyacevedo.factusimple.shared.entity.UnitMeasurement;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -79,7 +81,7 @@ public record ProductRequestDto(
         UnitMeasurement unitMeasure,
 
         @Schema(description = "Código estándar del producto (catálogo DIAN).", example = "999")
-        @Size(max = 10, message = "El código estándar no puede superar 10 caracteres")
+        @ValidCatalogCode(Catalog.PRODUCT_STANDARD)
         String standardCode,
 
         @Schema(description = "Tipo de venta. Si se omite: BY_UNIT al crear, sin cambios al actualizar.",

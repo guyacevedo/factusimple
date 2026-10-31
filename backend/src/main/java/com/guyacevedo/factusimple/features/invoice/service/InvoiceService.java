@@ -43,8 +43,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -77,6 +79,9 @@ public class InvoiceService {
     private static final String SALES_INVOICE = "01";
     private static final String STANDARD_OPERATION = "10";
     private static final String CANCELLATION_CONCEPT = "2";
+
+    private static final String REFERENCE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     // Bounds for an open date filter, so the query never gets a null date.
     private static final LocalDateTime NO_START = LocalDateTime.of(2000, 1, 1, 0, 0);
@@ -114,17 +119,28 @@ public class InvoiceService {
         }
         InvoiceTotals totals = InvoiceCalculator.totals(lines);
 
-        String paymentForm = checkPayments(requestDto.payments(), totals.total());
+        // What the payments must cover: the total adjusted by the cash rounding (Factus allows ±500).
+        BigDecimal cashRounding = requestDto.cashRounding() == null ? BigDecimal.ZERO : requestDto.cashRounding();
+        BigDecimal amountDue = totals.total().add(cashRounding);
+        String paymentForm = checkPayments(requestDto.payments(), totals.total(), amountDue);
         boolean creditSale = CREDIT_SALE.equals(paymentForm);
+        // The rounding covers coins that do not exist; a credit sale is not paid at the till,
+        // and its balance must stay within the total (ck_invoice_balance_due).
+        if (creditSale && cashRounding.signum() != 0) {
+            throw new BadRequestException("El redondeo de caja solo aplica a ventas de contado");
+        }
         BigDecimal changeAmount = checkCashReceived(requestDto, paymentForm);
         if (creditSale) {
             // Early and friendly; reserveCredit below is the check that holds under concurrency.
-            checkCreditFits(customer, totals.total());
+            checkCreditFits(customer, amountDue);
         }
 
+        String referenceCode = requestDto.referenceCode() != null
+                ? requestDto.referenceCode()
+                : generateReferenceCode(userId);
         if (requestDto.referenceCode() != null
-                && invoiceRepository.existsByUserIdAndReferenceCode(userId, requestDto.referenceCode())) {
-            throw new ConflictException("Ya tienes una factura con el código '" + requestDto.referenceCode() + "'");
+                && invoiceRepository.existsByUserIdAndReferenceCode(userId, referenceCode)) {
+            throw new ConflictException("Ya tienes una factura con el código '" + referenceCode + "'");
         }
 
         // 2. Plan limit. From here on the persistence context gets cleared, so only references are used.
@@ -132,9 +148,6 @@ public class InvoiceService {
             throw new UnprocessableEntityException(
                     "Alcanzaste el máximo de facturas de tu plan", "PLAN_LIMIT_REACHED");
         }
-        String referenceCode = requestDto.referenceCode() != null
-                ? requestDto.referenceCode()
-                : "FV-" + userRepository.findInvoiceCountById(userId);
 
         // 3. Save the invoice with its frozen lines and build the response.
         Invoice invoice = Invoice.builder()
@@ -142,7 +155,7 @@ public class InvoiceService {
                 .customer(customerRepository.getReferenceById(customer.getId()))
                 .referenceCode(referenceCode)
                 .documentType(SALES_INVOICE)
-                .operationType(STANDARD_OPERATION)
+                .operationType(requestDto.operationType() != null ? requestDto.operationType() : STANDARD_OPERATION)
                 .numberingRangeId(requestDto.numberingRangeId())
                 .sendEmail(Boolean.TRUE.equals(requestDto.sendEmail()))
                 .observation(requestDto.observation())
@@ -151,9 +164,10 @@ public class InvoiceService {
                 .totalTaxes(totals.totalTaxes())
                 .totalHoldingTaxes(totals.totalHoldingTaxes())
                 .total(totals.total())
+                .cashRounding(cashRounding)
                 .cashReceived(requestDto.cashReceived())
                 .changeAmount(changeAmount)
-                .balanceDue(creditSale ? totals.total() : BigDecimal.ZERO)
+                .balanceDue(creditSale ? amountDue : BigDecimal.ZERO)
                 .build();
         for (int i = 0; i < requestDto.items().size(); i++) {
             InvoiceItemRequestDto item = requestDto.items().get(i);
@@ -168,8 +182,8 @@ public class InvoiceService {
             Product product = products.get(item.productId());
             inventoryService.deductStock(product.getId(), product.getName(), item.quantity());
         }
-        if (creditSale && customerRepository.reserveCredit(customer.getId(), totals.total()) == 0) {
-            throw creditLimitExceeded(customer, totals.total());
+        if (creditSale && customerRepository.reserveCredit(customer.getId(), amountDue) == 0) {
+            throw creditLimitExceeded(customer, amountDue);
         }
         // A held sale being charged leaves the POS list with the same commit.
         if (requestDto.heldSaleId() != null) {
@@ -266,8 +280,9 @@ public class InvoiceService {
         return response;
     }
 
-    /** All payments share one payment form and add up exactly to the total. */
-    private static String checkPayments(List<InvoicePaymentRequestDto> payments, BigDecimal total) {
+    /** All payments share one payment form and add up exactly to the total plus the cash rounding. */
+    private static String checkPayments(List<InvoicePaymentRequestDto> payments, BigDecimal total,
+                                        BigDecimal amountDue) {
         String paymentForm = payments.getFirst().paymentForm();
         if (payments.stream().anyMatch(payment -> !paymentForm.equals(payment.paymentForm()))) {
             throw new BadRequestException("Todos los pagos de una factura deben tener la misma forma de pago");
@@ -276,9 +291,13 @@ public class InvoiceService {
         BigDecimal paid = payments.stream()
                 .map(InvoicePaymentRequestDto::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (paid.compareTo(total) != 0) {
-            throw new BadRequestException(String.format(
-                    "Los pagos suman %s y el total de la factura es %s", paid.toPlainString(), total.toPlainString()));
+        if (paid.compareTo(amountDue) != 0) {
+            throw new BadRequestException(amountDue.compareTo(total) == 0
+                    ? String.format("Los pagos suman %s y el total de la factura es %s",
+                            paid.toPlainString(), total.toPlainString())
+                    : String.format("Los pagos suman %s y deben sumar %s (total %s con redondeo %s)",
+                            paid.toPlainString(), amountDue.toPlainString(), total.toPlainString(),
+                            amountDue.subtract(total).toPlainString()));
         }
 
         if (CREDIT_SALE.equals(paymentForm)) {
@@ -400,6 +419,24 @@ public class InvoiceService {
                 .amount(payment.amount())
                 .dueDate(payment.dueDate())
                 .build();
+    }
+
+    /**
+     * FACT-{year}-{6 random letters/digits}, e.g. FACT-2026-AR32WS. With 36^6
+     * combinations per year a clash is very unlikely, but it is checked anyway
+     * (and the unique index answers 409 if two requests pick the same one).
+     */
+    private String generateReferenceCode(UUID userId) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            StringBuilder code = new StringBuilder("FACT-").append(Year.now().getValue()).append('-');
+            for (int i = 0; i < 6; i++) {
+                code.append(REFERENCE_ALPHABET.charAt(RANDOM.nextInt(REFERENCE_ALPHABET.length())));
+            }
+            if (!invoiceRepository.existsByUserIdAndReferenceCode(userId, code.toString())) {
+                return code.toString();
+            }
+        }
+        throw new IllegalStateException("No se pudo generar un código de referencia libre");
     }
 
     /** amountPaid is not stored in the invoice: it is the sum of its customer payments. */

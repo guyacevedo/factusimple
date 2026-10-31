@@ -1,12 +1,13 @@
 package com.guyacevedo.factusimple.features.product.dto;
 
+import com.guyacevedo.factusimple.features.catalog.Catalog;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -17,7 +18,7 @@ public record ProductTaxDto(
         @Schema(description = "Código del tributo: 01 = IVA, 04 = INC, etc.",
                 example = "01", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "El código del impuesto es requerido")
-        @Size(max = 4, message = "El código del impuesto no puede superar 4 caracteres")
+        @ValidCatalogCode(Catalog.TAX)
         String taxCode,
 
         @Schema(description = "Tarifa en porcentaje.", example = "19.00", requiredMode = Schema.RequiredMode.REQUIRED)

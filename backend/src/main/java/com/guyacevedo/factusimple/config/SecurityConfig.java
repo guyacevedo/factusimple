@@ -53,7 +53,11 @@ public class SecurityConfig {
 
     // Only reading is public: POST/PUT/DELETE /v1/plans and /v1/plans/all need a session.
     public static final String[] PUBLIC_GET_ENDPOINTS = {
-            "/v1/plans"
+            "/v1/plans",
+            // The registration form fills its selects before there is a session.
+            "/v1/catalogs",
+            "/v1/catalogs/municipalities",
+            "/v1/catalogs/departments"
     };
 
     @Bean

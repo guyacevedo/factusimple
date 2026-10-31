@@ -24,6 +24,7 @@ import com.guyacevedo.factusimple.shared.exception.TooManyRequestsException;
 import com.guyacevedo.factusimple.shared.exception.UnauthorizedException;
 import com.guyacevedo.factusimple.shared.util.Hashing;
 import jakarta.annotation.PostConstruct;
+import com.guyacevedo.factusimple.shared.util.NitVerificationDigit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -92,6 +93,8 @@ public class AuthService {
         checkInviteCode(plan, request.inviteCode());
 
         EstablishmentRequestDto establishment = request.establishment();
+        // Filled in when missing, rejected when it does not match the NIT.
+        String dv = NitVerificationDigit.resolve(establishment.nit(), establishment.dv());
         User user = userRepository.save(User.builder()
                 .plan(plan)
                 .role(UserRole.ESTABLISHMENT)
@@ -102,7 +105,7 @@ public class AuthService {
                 .phone(request.phone())
                 .companyName(establishment.companyName().trim())
                 .nit(establishment.nit())
-                .dv(establishment.dv())
+                .dv(dv)
                 .legalOrgCode(establishment.legalOrgCode())
                 .tributeCode(establishment.tributeCode())
                 .fiscalResponsibility(establishment.fiscalResponsibility())

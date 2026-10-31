@@ -3,6 +3,7 @@ package com.guyacevedo.factusimple.features.user.controller;
 import com.guyacevedo.factusimple.config.security.CustomUserDetails;
 import com.guyacevedo.factusimple.features.user.dto.ChangePasswordRequestDto;
 import com.guyacevedo.factusimple.features.user.dto.ChangePlanRequestDto;
+import com.guyacevedo.factusimple.features.user.dto.UpdateProfileRequestDto;
 import com.guyacevedo.factusimple.features.user.dto.UserResponseDto;
 import com.guyacevedo.factusimple.features.user.service.UserService;
 import com.guyacevedo.factusimple.shared.dto.ApiResponseDto;
@@ -34,6 +35,8 @@ import org.springframework.web.bind.annotation.*;
 
         **Permisos por endpoint:**
         - `GET /v1/users` — solo ADMIN (lista todos los usuarios)
+        - `GET /v1/users/me` — cualquier usuario autenticado (su cuenta, plan y datos fiscales)
+        - `PUT /v1/users/me/establishment` — solo ESTABLISHMENT (actualiza sus datos y los del establecimiento)
         - `PATCH /v1/users/me/password` — cualquier usuario autenticado (cambia su propia contraseña)
         - `PATCH /v1/users/me/plan` — solo ESTABLISHMENT (cambia el plan del establishment)
 
@@ -67,6 +70,51 @@ public class UserController {
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<UserResponseDto> usersPage = userService.listUsers(pageable);
         return ResponseEntity.ok(ApiResponseDto.success("Usuarios obtenidos", PageResponseDto.from(usersPage)));
+    }
+
+    @Operation(
+            summary = "Obtener mi cuenta",
+            description = "Retorna el usuario autenticado con su plan, contadores de uso y datos fiscales del establecimiento.",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cuenta del usuario"),
+            @ApiResponse(responseCode = "401", description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> getProfile(
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(ApiResponseDto.success("Cuenta obtenida", userService.getProfile(principal.getUserId())));
+    }
+
+    @Operation(
+            summary = "Actualizar mis datos y los del establecimiento (solo ESTABLISHMENT)",
+            description = """
+                    Actualiza nombre, teléfono y los datos fiscales del establecimiento.
+
+                    El **NIT y el DV** solo se pueden cambiar mientras el establecimiento no haya emitido
+                    facturas: identifican al emisor y cambiarlos alteraría las facturas ya creadas.
+                    """,
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Datos actualizados"),
+            @ApiResponse(responseCode = "400", description = "Validación fallida",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "403", description = "Se requiere rol ESTABLISHMENT",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "409", description = "Cambio de NIT o DV con facturas ya emitidas",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @PutMapping("/me/establishment")
+    @PreAuthorize("hasRole('ESTABLISHMENT')")
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> updateProfile(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody UpdateProfileRequestDto request) {
+        return ResponseEntity.ok(ApiResponseDto.success("Datos actualizados exitosamente",
+                userService.updateProfile(principal.getUserId(), request)));
     }
 
     @Operation(

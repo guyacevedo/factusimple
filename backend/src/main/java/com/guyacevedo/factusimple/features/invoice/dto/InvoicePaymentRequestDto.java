@@ -1,11 +1,12 @@
 package com.guyacevedo.factusimple.features.invoice.dto;
 
+import com.guyacevedo.factusimple.features.catalog.Catalog;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -17,13 +18,13 @@ public record InvoicePaymentRequestDto(
         @Schema(description = "Forma de pago DIAN: 1 = contado, 2 = crédito (requiere dueDate).",
                 example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "La forma de pago es requerida")
-        @Pattern(regexp = "^[12]$", message = "La forma de pago debe ser 1 (contado) o 2 (crédito)")
+        @ValidCatalogCode(Catalog.PAYMENT_FORM)
         String paymentForm,
 
         @Schema(description = "Medio de pago (catálogo DIAN): 10 = efectivo, 47 = transferencia, etc.",
                 example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "El medio de pago es requerido")
-        @Pattern(regexp = "^[0-9A-Z]{1,4}$", message = "El medio de pago debe ser un código DIAN de hasta 4 caracteres")
+        @ValidCatalogCode(Catalog.PAYMENT_METHOD)
         String paymentMethodCode,
 
         @Schema(description = "Referencia del pago (transferencia, voucher, etc.).", example = "TRX-778812")

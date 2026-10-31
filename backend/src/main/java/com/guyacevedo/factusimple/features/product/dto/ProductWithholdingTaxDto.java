@@ -1,12 +1,13 @@
 package com.guyacevedo.factusimple.features.product.dto;
 
+import com.guyacevedo.factusimple.features.catalog.Catalog;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -17,7 +18,7 @@ public record ProductWithholdingTaxDto(
         @Schema(description = "Código de la retención: 05 = ReteIVA, 06 = ReteRenta, etc.",
                 example = "06", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "El código de la retención es requerido")
-        @Size(max = 4, message = "El código de la retención no puede superar 4 caracteres")
+        @ValidCatalogCode(Catalog.WITHHOLDING_TAX)
         String withholdingTaxCode,
 
         @Schema(description = "Tarifa en porcentaje.", example = "2.50", requiredMode = Schema.RequiredMode.REQUIRED)

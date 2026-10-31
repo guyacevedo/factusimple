@@ -1,5 +1,8 @@
 package com.guyacevedo.factusimple.features.auth.dto;
 
+import com.guyacevedo.factusimple.features.catalog.validation.ValidMunicipality;
+import com.guyacevedo.factusimple.features.catalog.Catalog;
+import com.guyacevedo.factusimple.features.catalog.validation.ValidCatalogCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -29,22 +32,22 @@ public record EstablishmentRequestDto(
         String dv,
 
         @Schema(description = "Tipo de organización: 1 = persona jurídica, 2 = persona natural.", example = "1")
-        @Size(max = 10, message = "El tipo de organización no puede superar 10 caracteres")
+        @ValidCatalogCode(Catalog.LEGAL_ORGANIZATION)
         String legalOrgCode,
 
         @Schema(description = "Código del tributo (catálogo DIAN).", example = "01")
-        @Size(max = 4, message = "El código de tributo no puede superar 4 caracteres")
+        @ValidCatalogCode(Catalog.TRIBUTE)
         String tributeCode,
 
         @Schema(description = "Responsabilidad fiscal (catálogo DIAN).", example = "R-99-PN")
-        @Size(max = 50, message = "La responsabilidad fiscal no puede superar 50 caracteres")
+        @ValidCatalogCode(Catalog.FISCAL_RESPONSIBILITY)
         String fiscalResponsibility,
 
         @Schema(description = "Dirección del establecimiento.", example = "Calle 10 # 5-20, Magangué")
         @Size(max = 255, message = "La dirección no puede superar 255 caracteres")
         String address,
 
-        @Schema(description = "Código del municipio (catálogo de Factus).", example = "980")
-        @Size(max = 10, message = "El código de municipio no puede superar 10 caracteres")
+        @Schema(description = "Código DANE del municipio. Consultar GET /v1/catalogs/municipalities.", example = "13430")
+        @ValidMunicipality
         String municipalityCode
 ) {}

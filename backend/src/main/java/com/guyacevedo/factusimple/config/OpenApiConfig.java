@@ -97,6 +97,8 @@ public class OpenApiConfig {
             - **credit-notes** — notas crédito emitidas al cancelar una factura
             - **receivables** — cartera: abonos a las ventas a crédito
             - **pos** — ventas en espera del punto de venta
+            - **reports** — cifras del dashboard: resumen, ventas por día, productos más vendidos
+            - **catalogs** — códigos DIAN para los selects (público)
             - **factus-codes** — códigos de referencia Factus (tipos de documento, impuestos, formas de pago)
             - **numbering-ranges** — rangos de numeración activos del establecimiento
  

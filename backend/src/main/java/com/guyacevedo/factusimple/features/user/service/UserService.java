@@ -1,16 +1,20 @@
 package com.guyacevedo.factusimple.features.user.service;
 
+import com.guyacevedo.factusimple.features.auth.dto.EstablishmentRequestDto;
 import com.guyacevedo.factusimple.features.auth.service.TokenService;
 import com.guyacevedo.factusimple.features.plan.entity.Plan;
 import com.guyacevedo.factusimple.features.plan.repository.PlanRepository;
 import com.guyacevedo.factusimple.features.user.dto.ChangePasswordRequestDto;
 import com.guyacevedo.factusimple.features.user.dto.ChangePlanRequestDto;
+import com.guyacevedo.factusimple.features.user.dto.UpdateProfileRequestDto;
 import com.guyacevedo.factusimple.features.user.dto.UserResponseDto;
 import com.guyacevedo.factusimple.features.user.entity.User;
 import com.guyacevedo.factusimple.features.user.mapper.UserMapper;
 import com.guyacevedo.factusimple.features.user.repository.UserRepository;
 import com.guyacevedo.factusimple.shared.exception.BadRequestException;
+import com.guyacevedo.factusimple.shared.exception.ConflictException;
 import com.guyacevedo.factusimple.shared.exception.ResourceNotFoundException;
+import com.guyacevedo.factusimple.shared.util.NitVerificationDigit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -35,6 +40,44 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDto> listUsers(Pageable pageable) {
         return userRepository.findAll(pageable).map(userMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponseDto getProfile(UUID userId) {
+        return userMapper.toDto(findUser(userId));
+    }
+
+    /**
+     * Updates the user and the establishment's fiscal data. The NIT and DV
+     * identify the issuer of the invoices, so they are frozen once the first
+     * invoice exists: changing them would rewrite who issued those invoices.
+     */
+    @Transactional
+    public UserResponseDto updateProfile(UUID userId, UpdateProfileRequestDto request) {
+        User user = findUser(userId);
+        EstablishmentRequestDto establishment = request.establishment();
+        String dv = NitVerificationDigit.resolve(establishment.nit(), establishment.dv());
+
+        boolean issuerChanged = !Objects.equals(user.getNit(), establishment.nit())
+                || !Objects.equals(user.getDv(), dv);
+        if (issuerChanged && user.getInvoiceCount() > 0) {
+            throw new ConflictException(
+                    "El NIT y el DV no se pueden cambiar porque el establecimiento ya emitió facturas");
+        }
+
+        user.setFirstName(request.firstName().trim());
+        user.setLastName(request.lastName().trim());
+        user.setPhone(request.phone());
+        user.setCompanyName(establishment.companyName().trim());
+        user.setNit(establishment.nit());
+        user.setDv(dv);
+        user.setLegalOrgCode(establishment.legalOrgCode());
+        user.setTributeCode(establishment.tributeCode());
+        user.setFiscalResponsibility(establishment.fiscalResponsibility());
+        user.setAddress(establishment.address());
+        user.setMunicipalityCode(establishment.municipalityCode());
+        log.info("Profile updated for user id={}", user.getId());
+        return userMapper.toDto(user);
     }
 
     @Transactional

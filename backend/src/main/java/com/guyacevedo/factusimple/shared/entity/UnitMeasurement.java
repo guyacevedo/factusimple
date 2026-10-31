@@ -4,27 +4,30 @@ import java.util.Arrays;
 import com.guyacevedo.factusimple.features.product.entity.SaleType;
 
 public enum UnitMeasurement {
-    UNIDAD("und", "94", SaleType.BY_UNIT),
-    SET("set", "SET", SaleType.BY_UNIT),
-    DOCENA("docena", "DZN", SaleType.BY_UNIT),
-    DOBLE_DOCENA("veinticuatro", "DPR", SaleType.BY_UNIT),
+    UNIDAD("und", "94", "unidad", SaleType.BY_UNIT),
+    SET("set", "SET", "conjunto/set", SaleType.BY_UNIT),
+    DOCENA("docena", "DZN", "docena", SaleType.BY_UNIT),
+    DOBLE_DOCENA("veinticuatro", "DPR", "docena par (24 unidades)", SaleType.BY_UNIT),
 
-    KILOGRAMO("kg", "KGM", SaleType.BY_WEIGHT),
-    LIBRA("lb", "LBR", SaleType.BY_WEIGHT),
-    GRAMO("gr", "GRM", SaleType.BY_WEIGHT),
-    ONZA("onz", "ONZ", SaleType.BY_WEIGHT),
+    KILOGRAMO("kg", "KGM", "kilogramo", SaleType.BY_WEIGHT),
+    LIBRA("lb", "LBR", "libra", SaleType.BY_WEIGHT),
+    GRAMO("gr", "GRM", "gramo", SaleType.BY_WEIGHT),
+    ONZA("onz", "ONZ", "onza", SaleType.BY_WEIGHT),
 
-    LITRO("litro", "LTR", SaleType.BY_VOLUME),
-    MILILITRO("ml", "MLT", SaleType.BY_VOLUME),
-    GALON("galon", "GLL", SaleType.BY_VOLUME);
+    LITRO("litro", "LTR", "litro", SaleType.BY_VOLUME),
+    MILILITRO("ml", "MLT", "mililitro", SaleType.BY_VOLUME),
+    GALON("galon", "GLL", "galón", SaleType.BY_VOLUME);
 
     private final String abbreviation;
     private final String code;
+    /** Name as Factus lists the unit (unit measures catalog). */
+    private final String label;
     private final SaleType saleType;
 
-    UnitMeasurement(String abbreviation, String code, SaleType saleType) {
+    UnitMeasurement(String abbreviation, String code, String label, SaleType saleType) {
         this.abbreviation = abbreviation;
         this.code = code;
+        this.label = label;
         this.saleType = saleType;
     }
 
@@ -34,6 +37,10 @@ public enum UnitMeasurement {
 
     public String code() {
         return code;
+    }
+
+    public String label() {
+        return label;
     }
 
     public SaleType saleType() {

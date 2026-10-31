@@ -11,6 +11,7 @@ import com.guyacevedo.factusimple.shared.exception.BadRequestException;
 import com.guyacevedo.factusimple.shared.exception.ConflictException;
 import com.guyacevedo.factusimple.shared.exception.ResourceNotFoundException;
 import com.guyacevedo.factusimple.shared.exception.UnprocessableEntityException;
+import com.guyacevedo.factusimple.shared.util.NitVerificationDigit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class CustomerService {
+
+    /** DIAN identification type of a NIT. */
+    private static final String NIT_DOCUMENT = "31";
 
     private final CustomerRepository customerRepository;
     private final InvoiceRepository invoiceRepository;
@@ -44,6 +48,7 @@ public class CustomerService {
         }
 
         Customer customer = customerMapper.toEntity(requestDto);
+        customer.setDv(verificationDigitOf(requestDto));
         // Reference only: no SELECT on users, the FK is enough.
         customer.setUser(userRepository.getReferenceById(userId));
         customer = customerRepository.save(customer);
@@ -83,7 +88,9 @@ public class CustomerService {
                     "El cupo de crédito no puede ser menor al saldo pendiente (" + customer.getCreditBalance() + ")");
         }
 
+        String dv = verificationDigitOf(requestDto);
         customerMapper.updateEntity(requestDto, customer);
+        customer.setDv(dv);
         log.info("Customer updated: id={}", id);
         return customerMapper.toDto(customer);
     }
@@ -106,6 +113,22 @@ public class CustomerService {
         // Frees the slot in the plan; flushAutomatically writes the DELETE first.
         userRepository.decrementCustomerCount(userId);
         log.info("Customer deleted: id={}", id);
+    }
+
+    /**
+     * A NIT customer always ends up with its DV: calculated when missing (as
+     * Factus does) and rejected when it does not match. Other documents have
+     * no DV, so whatever was sent is kept as is.
+     */
+    private static String verificationDigitOf(CustomerRequestDto requestDto) {
+        if (!NIT_DOCUMENT.equals(requestDto.idTypeCode())) {
+            return requestDto.dv();
+        }
+        if (!requestDto.identification().matches("\\d{5,15}")) {
+            throw new BadRequestException(
+                    "La identificación de un NIT debe tener entre 5 y 15 dígitos, sin dígito de verificación ni guion");
+        }
+        return NitVerificationDigit.resolve(requestDto.identification(), requestDto.dv());
     }
 
     // Another user's customer answers 404, not 403, so its existence is not revealed.

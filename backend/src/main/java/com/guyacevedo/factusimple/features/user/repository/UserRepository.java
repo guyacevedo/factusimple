@@ -67,15 +67,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             """)
     int incrementInvoiceCountIfBelowLimit(@Param("userId") UUID userId);
 
-    /**
-     * The counter right after incrementInvoiceCountIfBelowLimit, used as the
-     * invoice number (FV-n). That UPDATE keeps the user row locked until commit,
-     * so two invoices at once cannot read the same value; cancelled invoices keep
-     * counting, so a number is never handed out twice.
-     */
-    @Query("SELECT u.invoiceCount FROM User u WHERE u.id = :userId")
-    int findInvoiceCountById(@Param("userId") UUID userId);
-
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE User u SET u.productCount = u.productCount - 1 WHERE u.id = :userId AND u.productCount > 0")
     int decrementProductCount(@Param("userId") UUID userId);
